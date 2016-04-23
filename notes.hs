@@ -225,6 +225,110 @@ numLongChains = length (filter (\xs -> length xs > 15) (map chain [1..100]))
 --Lambda not necessary in latter case
 --map (*10) [1,2,3,4,5] == map (\x -> x * 10) [1,2,3,4,5]
 
+--foldl (reduce)
+sum' :: (Num a) => [a] -> a
+sum' = foldl (+) 0
+--sum' xs = foldl (\acc x -> acc + x) 0 xs
+
+isElem' :: (Eq a) => a -> [a] -> Bool
+isElem' y = foldl (\acc x -> if x == y then True else acc) False
+
+--foldr (reduceRight)
+mapFoldR' :: (a -> b) -> [a] -> [b]
+mapFoldR' f xs = foldr (\x acc -> f x : acc) [] xs
+
+--We could have implemented this function with a left fold too:
+mapFoldL' :: (a -> b) -> [a] -> [b]
+mapFoldL' f xs = foldl (\acc x -> acc ++ [f x]) [] xs
+--but the ++ function is much more expensive than :,
+--so we usually use right folds when we're building up new lists from a list.
+
+
+--Implementing standard library functions with fold:
+--maximum' :: (Ord a) => [a] -> a
+--maximum' = foldl1 (\acc x -> if (x > acc) then x else acc)
+
+--reverse' :: [a] -> [a]
+--reverse' = foldl (\acc x -> x : acc) []
+
+--product' :: (Num a) => [a] -> a
+--product' = foldl (\acc x -> acc * x) 1
+
+--filter' :: (a -> Bool) -> [a] -> [a]
+--filter' f = foldr (\x acc -> if (f x) then (x:acc) else acc) []
+
+--head' :: [a] -> a
+--head' = foldr1 (\x _ -> x)
+
+--last' :: [a] -> a
+--last' = foldl1 (\_ x -> x)
+
+
+--scan is like fold, but reports all the intermediate accumulator
+--states in the form of a list.
+scanTest1 = scanl (+) 0 [1,2,3,4,5] == [0,1,3,6,10,15]
+scanTest2 = scanr (+) 0 [1,2,3,4,5] == [15,14,12,9,5,0]
+scanTest3 = scanl1 (\acc x -> if x > acc then x else acc) [3,2,4,1,5,0,6] == [3,3,4,4,5,5,6]
+--The above should all return True
+
+--How many elements does it take for the sum of the roots
+--of all natural numbers to exceed 1000?
+sqrtSums :: Int
+sqrtSums = length (takeWhile (< 1000) (scanl1 (+) (map sqrt [1..]))) + 1
+--We use takeWhile here instead of filter because
+--filter doesn't work on infinite lists
+
+
+--Function application with $
+
+--($) :: (a -> b) -> a -> b
+--f $ x = f x
+
+--normal function application has a really high precedence,
+--but the $ function has the lowest precedence
+
+--sum (map sqrt [1..130]) == sum $ map sqrt [1..130]
+--sqrt (3 + 4 + 9) == sqrt $ 3 + 4 + 9
+--sum (filter (> 10) (map (*2) [2..10])) == sum $ filter (> 10) $ map (*2) [2..10]
+
+
+--Apart from getting rid of parentheses, $ means that
+--function application can be treated just like another function.
+--That way, we can, for instance, map function application
+--over a list of functions:
+
+--map ($ 3) [(4+), (10*), (^2)] == [7.0, 30.0, 9.0]
+
+
+--Function composition with .
+
+--(.) :: (b -> c) -> (a -> b) -> a -> c
+--f . g = \x -> f (g x)
+
+--map (\x -> negate (abs x)) == map (negate . abs)
+--map (\xs -> negate (sum (tail xs))) == map (negate . sum . tail)
+--sum (replicate 5 (max 6.7 8.9)) == (sum . replicate 5 . max 6.7) 8.9
+-- == sum . replicate 5 . max 6.7 $ 8.9
+
+--replicate 100 (product (map (*3) (zipWith max [1,2,3,4,5] [4,5,6,7,8])))
+-- == replicate 100 . product . map (*3) . zipWith max [1,2,3,4,5] $ [4,5,6,7,8]
+
+--fn x = ceiling (negate (tan (cos (max 50 x))))
+-- == fn ceiling . negate . tan . cos . max 50
+
+--3 different ways to right the same function:
+oddSquareSum1 :: Integer
+oddSquareSum1 = sum (takeWhile (< 10000) (filter odd (map (^2) [1..])))
+
+oddSquareSum2 :: Integer
+oddSquareSum2 = sum . takeWhile (< 10000) . filter odd . map (^2) $ [1..]
+
+oddSquareSum3 :: Integer
+oddSquareSum3 =
+    let oddSquares = filter odd $ map (^2) [1..]
+        belowLimit = takeWhile (< 10000) oddSquares
+    in  sum belowLimit
+
 
 --Generate fibonacci sequence
 fibs :: [Integer]
